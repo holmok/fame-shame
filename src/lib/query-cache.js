@@ -5,6 +5,9 @@ import Base62 from 'base62';
 import EventEmiter from 'events';
 
 function makeKey(sql, params) {
+  if (!sql) {
+    throw new Error('Parameter sql cannot be empty');
+  }
   const hash = Hash({ sql, params });
   return Base62.encode(hash);
 }
@@ -47,7 +50,7 @@ class QueryCache extends EventEmiter {
 
         const key = makeKey(sql, params);
 
-        const buffer = value ? this.bson.serialize(value) : undefined;
+        const buffer = this.bson.serialize(value);
 
         this.cache.set(key, buffer, ttl, (error, result) => {
           if (error) {

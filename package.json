@@ -6,13 +6,13 @@
   "scripts": {
     "start": "node --inspect  index.js",
     "test": "npm run eslint && npm run nyc",
-    "eslint": "eslint .",
+    "eslint": "eslint src/ test/",
     "nodemon": "nodemon  --inspect  index.js",
     "validate": "npm ls",
     "mocha": "mocha --require babel-core/register tests/**/*.test.js",
     "nyc":
       "nyc --reporter=text --reporter=text-summary --reporter=html --report-dir=coverage npm run mocha",
-    "postnyc": "nyc check-coverage --statements 97 --branches 94 --functions 100 --lines 97"
+    "postnyc": "nyc check-coverage --statements 100 --branches 100 --functions 100 --lines 100"
   },
   "repository": {
     "type": "git",
