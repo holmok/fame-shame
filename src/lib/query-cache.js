@@ -4,19 +4,14 @@ import Hash from 'object-hash';
 import Base62 from 'base62';
 import EventEmiter from 'events';
 
+import { event } from './common';
+
 function makeKey(sql, params) {
   if (!sql) {
     throw new Error('Parameter sql cannot be empty');
   }
   const hash = Hash({ sql, params });
   return Base62.encode(hash);
-}
-
-function event(type, msg, data) {
-  const message = `${msg}${data ? ':' : '.'} ${Object.keys(data || {})
-    .map(key => `${key}=${JSON.stringify(data[key])}`)
-    .join(', ')}`;
-  this.emit(type, message);
 }
 
 class QueryCache extends EventEmiter {
@@ -29,12 +24,12 @@ class QueryCache extends EventEmiter {
 
     /* istanbul ignore next */
     this.cache.on('failure', (error) => {
-      event.call(this, 'error', 'Cache failure event', { error });
+      event.call(this, 'error', 'Cache failure event', error);
     });
 
     /* istanbul ignore next */
     this.cache.on('issue', (error) => {
-      event.call(this, 'error', 'Cache issue event', { error });
+      event.call(this, 'error', 'Cache issue event', error);
     });
 
     event.call(this, 'event', 'Cache initialized', { host, options });
@@ -54,15 +49,20 @@ class QueryCache extends EventEmiter {
 
         this.cache.set(key, buffer, ttl, (error, result) => {
           if (error) {
-            event.call(this, 'error', 'Failed setting item to cache', { error });
+            event.call(this, 'error', 'Failed setting item to cache', error);
             resolve();
           } else {
-            event.call(this, 'event', 'Set item to cache', { sql, params, ttl });
+            event.call(this, 'event', 'Set item to cache', {
+              key,
+              sql,
+              params,
+              ttl,
+            });
             resolve(result);
           }
         });
       } catch (error) {
-        event.call(this, 'error', 'Failed setting item to cache', { error });
+        event.call(this, 'error', 'Failed setting item to cache', error);
         resolve();
       }
     });
@@ -77,21 +77,35 @@ class QueryCache extends EventEmiter {
 
         this.cache.get(key, (error, result) => {
           if (error) {
-            event.call(this, 'error', 'Failed getting item from cache', { error });
+            event.call(this, 'error', 'Failed getting item from cache', {
+              key,
+              sql,
+              params,
+              error,
+            });
             resolve();
           } else {
             try {
               const data = result ? this.bson.deserialize(result) : undefined;
-              event.call(this, 'event', 'Got item from cache', { sql, params });
+              event.call(this, 'event', 'Got item from cache', { key, sql, params });
               resolve(data);
             } catch (err) {
-              event.call(this, 'error', 'Failed getting item from cache', { err });
+              event.call(this, 'error', 'Failed getting item from cache', {
+                key,
+                sql,
+                params,
+                err,
+              });
               resolve();
             }
           }
         });
       } catch (error) {
-        event.call(this, 'error', 'Failed setting item to cache', { error });
+        event.call(this, 'error', 'Failed setting item to cache', {
+          sql,
+          params,
+          error,
+        });
         resolve();
       }
     });
@@ -102,7 +116,7 @@ class QueryCache extends EventEmiter {
       event.call(this, 'event', 'Flushing cache');
       this.cache.flush((error) => {
         if (error) {
-          event.call(this, 'error', 'Failed setting item to cache', { error });
+          event.call(this, 'error', 'Failed setting item to cache', error);
           resolve();
         } else {
           event.call(this, 'event', 'Flushed cache');
