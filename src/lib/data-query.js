@@ -38,7 +38,6 @@ async function execute(sql, params, name) {
     emitter.call(this, 'event', 'Executed sql', query);
     result = output.rows;
   } catch (error) {
-    console.log(error);
     emitter.call(this, 'error', 'Failed to execute sql', { error, query });
   } finally {
     client.release();
@@ -52,6 +51,8 @@ class DataQuery extends EventEmitter {
     const { Pool } = Pg.native;
     this.pool = new Pool(options);
     this.queryCache = queryCache;
+
+    /* istanbul ignore next */
     this.pool.on('error', (error) => {
       emitter.call(this, 'error', 'Unexpected error on idle client', error);
     });
@@ -60,14 +61,14 @@ class DataQuery extends EventEmitter {
   async run(sql, params, name, ttl = 0) {
     let result;
     if (ttl) {
-      result = await this.cache.get(sql, params);
+      result = await this.queryCache.get(sql, params);
       if (result) {
         return result;
       }
     }
     result = execute.call(this, sql, params, name);
     if (result && ttl) {
-      await this.cache.set(sql, params, ttl);
+      await this.queryCache.set(sql, params, ttl);
     }
     return result;
   }
