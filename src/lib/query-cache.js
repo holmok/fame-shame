@@ -1,10 +1,10 @@
 import Memcahed from 'memcached';
 import BSON from 'bson';
+import EventEmitter from 'events';
 import Hash from 'object-hash';
 import Base62 from 'base62';
-import EventEmiter from 'events';
 
-import { event } from './common';
+import { emitter } from './common';
 
 function makeKey(sql, params) {
   if (!sql) {
@@ -14,8 +14,8 @@ function makeKey(sql, params) {
   return Base62.encode(hash);
 }
 
-class QueryCache extends EventEmiter {
-  constructor(host = '127.0.0.1:11211', options = {}, ttl = 300) {
+class QueryCache extends EventEmitter {
+  constructor(host, options, ttl = 300) {
     super();
 
     this.cache = new Memcahed(host, options);
@@ -24,24 +24,24 @@ class QueryCache extends EventEmiter {
 
     /* istanbul ignore next */
     this.cache.on('failure', (error) => {
-      event.call(this, 'error', 'Cache failure event', error);
+      emitter.call(this, 'error', 'Cache failure event', error);
     });
 
     /* istanbul ignore next */
     this.cache.on('issue', (error) => {
-      event.call(this, 'error', 'Cache issue event', error);
+      emitter.call(this, 'error', 'Cache issue event', error);
     });
 
-    event.call(this, 'event', 'Cache initialized', { host, options });
+    emitter.call(this, 'event', 'Cache initialized', { host, options });
   }
 
   set(sql, params, value, ttl = this.ttl) {
     return new Promise((resolve) => {
       try {
         if (typeof value !== 'object') {
-          throw new Error('Can only cache objects in query cacher.');
+          throw new Error('Can only cache objects in QueryCache.');
         }
-        event.call(this, 'event', 'Setting item to cache', { sql, params, ttl });
+        emitter.call(this, 'event', 'Setting item to cache', { sql, params, ttl });
 
         const key = makeKey(sql, params);
 
@@ -49,10 +49,10 @@ class QueryCache extends EventEmiter {
 
         this.cache.set(key, buffer, ttl, (error, result) => {
           if (error) {
-            event.call(this, 'error', 'Failed setting item to cache', error);
+            emitter.call(this, 'error', 'Failed setting item to cache', error);
             resolve();
           } else {
-            event.call(this, 'event', 'Set item to cache', {
+            emitter.call(this, 'event', 'Set item to cache', {
               key,
               sql,
               params,
@@ -62,7 +62,7 @@ class QueryCache extends EventEmiter {
           }
         });
       } catch (error) {
-        event.call(this, 'error', 'Failed setting item to cache', error);
+        emitter.call(this, 'error', 'Failed setting item to cache', error);
         resolve();
       }
     });
@@ -71,13 +71,13 @@ class QueryCache extends EventEmiter {
   get(sql, params) {
     return new Promise((resolve) => {
       try {
-        event.call(this, 'event', 'Getting item from cache', { sql, params });
+        emitter.call(this, 'event', 'Getting item from cache', { sql, params });
 
         const key = makeKey(sql, params);
 
         this.cache.get(key, (error, result) => {
           if (error) {
-            event.call(this, 'error', 'Failed getting item from cache', {
+            emitter.call(this, 'error', 'Failed getting item from cache', {
               key,
               sql,
               params,
@@ -87,10 +87,10 @@ class QueryCache extends EventEmiter {
           } else {
             try {
               const data = result ? this.bson.deserialize(result) : undefined;
-              event.call(this, 'event', 'Got item from cache', { key, sql, params });
+              emitter.call(this, 'event', 'Got item from cache', { key, sql, params });
               resolve(data);
             } catch (err) {
-              event.call(this, 'error', 'Failed getting item from cache', {
+              emitter.call(this, 'error', 'Failed getting item from cache', {
                 key,
                 sql,
                 params,
@@ -101,7 +101,7 @@ class QueryCache extends EventEmiter {
           }
         });
       } catch (error) {
-        event.call(this, 'error', 'Failed setting item to cache', {
+        emitter.call(this, 'error', 'Failed setting item to cache', {
           sql,
           params,
           error,
@@ -113,13 +113,13 @@ class QueryCache extends EventEmiter {
 
   flush() {
     return new Promise((resolve) => {
-      event.call(this, 'event', 'Flushing cache');
+      emitter.call(this, 'event', 'Flushing cache');
       this.cache.flush((error) => {
         if (error) {
-          event.call(this, 'error', 'Failed setting item to cache', error);
+          emitter.call(this, 'error', 'Failed setting item to cache', error);
           resolve();
         } else {
-          event.call(this, 'event', 'Flushed cache');
+          emitter.call(this, 'event', 'Flushed cache');
           resolve();
         }
       });
