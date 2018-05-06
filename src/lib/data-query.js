@@ -1,4 +1,5 @@
 import Pg from 'pg';
+import EventEmitter from 'events';
 
 import { emitter } from './common';
 import QueryCache from './query-cache';
@@ -37,6 +38,7 @@ async function execute(sql, params, name) {
     emitter.call(this, 'event', 'Executed sql', query);
     result = output.rows;
   } catch (error) {
+    console.log(error);
     emitter.call(this, 'error', 'Failed to execute sql', { error, query });
   } finally {
     client.release();
@@ -44,8 +46,9 @@ async function execute(sql, params, name) {
   return result;
 }
 
-class DataQuery {
+class DataQuery extends EventEmitter {
   constructor(options, queryCache = new QueryCache()) {
+    super();
     const { Pool } = Pg.native;
     this.pool = new Pool(options);
     this.queryCache = queryCache;

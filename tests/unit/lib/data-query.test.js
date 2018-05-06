@@ -21,14 +21,18 @@ describe('DataQuery', () => {
 
   context('run', () => {
     it('should set with object value', async () => {
-      const clientMock = Sinon.mock();
+      const client = { query() {}, release() {} };
+      const clientMock = Sinon.mock(client);
       clientMock
         .expects('query')
         .once()
-        .resolves();
-      sandbox.stub(data.pool, 'connect').resolves(clientMock);
-      await data.run('sql', 'params', {});
-      sandbox.assert.calledOnce(cache.cache.set);
+        .resolves({ rows: [] });
+      clientMock.expects('release').once();
+      sandbox.stub(data.pool, 'connect').resolves(client);
+      const result = await data.run('sql', 'params', {});
+      expect(result).to.be.an('array');
+      clientMock.verify();
+      clientMock.restore();
     });
   });
 });
