@@ -1,21 +1,21 @@
 import BaseModel from './base-model';
 
 const GET_LIST = `
-SELECT "id", "label", "name", "created" 
+SELECT "id", "label", "name", "created", "updated"
 FROM "metrics"."owners" 
 LIMIT $take
 OFFSET $skip;
 `;
 
 const GET_BY_ID = `
-SELECT "id", "label", "name", "created" 
+SELECT "id", "label", "name", "created", "updated"
 FROM "metrics"."owners" 
 WHERE "id" = $id 
 LIMIT 1;
 `;
 
 const GET_BY_LABEL = `
-SELECT "id", "label", "name", "created" 
+SELECT "id", "label", "name", "created", "updated" 
 FROM "metrics"."owners" 
 WHERE "label" = $label 
 LIMIT 1;
@@ -31,13 +31,13 @@ RETURNING "id";
 
 const UPDATE = `
 UPDATE "metrics"."owners" 
-SET "label" = $label, "name" = $name 
+SET "label" = $label, "name" = $name, "updated" = CURRENT_TIMESTAMP 
 WHERE "id",  = $id
 `;
 
 class Owners extends BaseModel {
   getList(skip = 0, take = 25) {
-    return this.dataQuery.run(GET_LIST, { skip, take }, 'get-owner-by-id');
+    return this.dataQuery.run(GET_LIST, { skip, take }, 'get-owner-list');
   }
 
   async getById(id) {
@@ -52,7 +52,7 @@ class Owners extends BaseModel {
 
   async create(label, name) {
     const [{ id }] = await this.dataQuery.run(CREATE, { label, name }, 'create-owner');
-    return { id, label, name };
+    return id;
   }
 
   async update(id, label, name) {

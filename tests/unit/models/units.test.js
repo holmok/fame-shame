@@ -4,25 +4,26 @@
 import { expect } from 'chai';
 import Sinon from 'sinon';
 
-import Owners from '../../../src/models/owners';
+import Units from '../../../src/models/units';
 import DataQuery from '../../../src/lib/data-query';
 
-describe('Owners', () => {
+describe('Units', () => {
   const date = new Date();
   const data = {
     id: 123,
     name: 'name',
     label: 'label',
+    isFloat: true,
     created: date,
     updated: date,
   };
-  let owners;
+  let units;
   let queryStub;
   let sandbox;
   beforeEach(() => {
     sandbox = Sinon.createSandbox();
     queryStub = sandbox.createStubInstance(DataQuery);
-    owners = new Owners(queryStub);
+    units = new Units(queryStub);
   });
 
   afterEach(() => {
@@ -30,8 +31,8 @@ describe('Owners', () => {
   });
 
   context('constructor', () => {
-    it('should be able to create an instance of a owners model', () => {
-      const x = new Owners(queryStub);
+    it('should be able to create an instance of a units model', () => {
+      const x = new Units(queryStub);
       expect(x).to.be.an('object');
     });
   });
@@ -39,30 +40,30 @@ describe('Owners', () => {
   context('methods', () => {
     it('should be able call create', async () => {
       queryStub.run.resolves([{ id: 123 }]);
-      const results = await owners.create('label', 'name');
+      const results = await units.create('label', 'name', true);
       expect(results).to.be.equal(123);
     });
 
     it('should be able call update', async () => {
       queryStub.run.resolves();
-      await owners.update(123, 'label', 'name');
+      await units.update(123, 'label', 'name', true);
     });
 
     it('should be able call getById', async () => {
       queryStub.run.resolves([data]);
-      const results = await owners.getById(123);
+      const results = await units.getById(123);
       expect(results).to.deep.equal(data);
     });
 
     it('should be able call getByLabel', async () => {
       queryStub.run.resolves([data]);
-      const results = await owners.getByLabel('label');
+      const results = await units.getByLabel('label');
       expect(results).to.deep.equal(data);
     });
 
     it('should be able call getList', async () => {
       queryStub.run.resolves([data, data]);
-      const results = await owners.getList();
+      const results = await units.getList();
       expect(results).to.deep.equal([data, data]);
     });
   });
