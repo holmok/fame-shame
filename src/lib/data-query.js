@@ -1,8 +1,12 @@
 import Pg from 'pg';
 import EventEmitter from 'events';
 
-import { emitter } from './common';
-import QueryCache from './query-cache';
+function emitter(type, msg, data) {
+  const message = `${msg}${data ? ':' : '.'} ${Object.keys(data || {})
+    .map(key => `${key}=${JSON.stringify(data[key])}`)
+    .join(', ')}`;
+  this.emit(type, message);
+}
 
 function setParameters(sql, params) {
   const namedParam = /\$(\w+)/g;
@@ -46,11 +50,10 @@ async function execute(sql, params, name) {
 }
 
 class DataQuery extends EventEmitter {
-  constructor(options, queryCache = new QueryCache()) {
+  constructor(options) {
     super();
     const { Pool } = Pg.native;
     this.pool = new Pool(options);
-    this.queryCache = queryCache;
 
     /* istanbul ignore next */
     this.pool.on('error', (error) => {
@@ -58,19 +61,9 @@ class DataQuery extends EventEmitter {
     });
   }
 
-  async run(sql, params, name, ttl = 0) {
-    let result;
-    if (ttl) {
-      result = await this.queryCache.get(sql, params);
-      if (result) {
-        return result;
-      }
-    }
-    result = execute.call(this, sql, params, name);
-    if (result && ttl) {
-      await this.queryCache.set(sql, params, ttl);
-    }
-    return result;
+  run(sql, params, name) {
+    emitter.call(this, 'event', 'Data query called run');
+    return execute.call(this, sql, params, name);
   }
 }
 
